@@ -4,11 +4,16 @@ import (
 	"crypto/tls"
 	"flag"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"time"
 
 	"gitlab.com/aalbacetef/libgemini"
+)
+
+const (
+	defaultTimeout = 30 * time.Second
 )
 
 func main() {
@@ -23,17 +28,22 @@ func main() {
 	nargs := flag.NArg()
 	if nargs == 0 {
 		flag.Usage()
+
 		return
 	}
 
-	w := os.Stdout
+	var w io.Writer = os.Stdout
+
 	if out != "" {
 		fpath := filepath.Clean(out)
+
 		fd, err := os.OpenFile(fpath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, os.ModePerm)
 		if err != nil {
 			fmt.Printf("could not open file (%s): %v\n", fpath, out)
+
 			return
 		}
+
 		w = fd
 		defer fd.Close()
 	}
@@ -42,7 +52,7 @@ func main() {
 	URL := args[0]
 
 	client := libgemini.Client{
-		Timeout: 30 * time.Second,
+		Timeout: defaultTimeout,
 		Config: &tls.Config{
 			MinVersion:         tls.VersionTLS13,
 			InsecureSkipVerify: true,
@@ -52,6 +62,7 @@ func main() {
 	resp, err := client.Get(URL)
 	if err != nil {
 		fmt.Println("error getting page: ", err)
+
 		return
 	}
 

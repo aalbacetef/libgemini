@@ -11,35 +11,39 @@ import (
 )
 
 type Client struct {
-	Timeout time.Duration
 	Config  *tls.Config
+	Timeout time.Duration
 }
 
 const (
 	GeminiPort = 1965
+	maxURLSize = 1024
 )
 
 func (c Client) Get(requestURL string) (Response, error) {
-	u, err := ParseURL(requestURL)
+	parsedURL, err := ParseURL(requestURL)
 	if err != nil {
 		return Response{}, err
 	}
-	u.Scheme = "gemini"
+
+	parsedURL.Scheme = "gemini"
 
 	ctx, cancel := context.WithTimeout(context.Background(), c.Timeout)
 	defer cancel()
 
-	c.Config.ServerName = u.Host
+	c.Config.ServerName = parsedURL.Host
 	d := tls.Dialer{Config: c.Config}
 
-	conn, err := d.DialContext(ctx, "tcp", fmt.Sprintf("%s:%d", u.Host, GeminiPort))
+	addr := fmt.Sprintf("%s:%d", parsedURL.Host, GeminiPort)
+
+	conn, err := d.DialContext(ctx, "tcp", addr)
 	if err != nil {
-		return Response{}, err
+		return Response{}, fmt.Errorf("error dialing (%s): %w", addr, err)
 	}
 	defer conn.Close()
 
-	if err := SendRequest(conn, u.String()); err != nil {
-		return Response{}, err
+	if sendErr := SendRequest(conn, parsedURL.String()); sendErr != nil {
+		return Response{}, fmt.Errorf("error making request: %w", sendErr)
 	}
 
 	resp, err := ReadResponse(conn)
@@ -50,51 +54,52 @@ func (c Client) Get(requestURL string) (Response, error) {
 	return resp, nil
 }
 
-const maxURLSize = 1024
-
-func SendRequest(w io.Writer, u string) error {
-	if len(u) > maxURLSize {
-		return fmt.Errorf("url length (%d) exceeds max size (%d)", len(u), maxURLSize)
+func SendRequest(w io.Writer, rawURL string) error {
+	if len(rawURL) > maxURLSize {
+		return fmt.Errorf("url length (%d) exceeds max size (%d)", len(rawURL), maxURLSize)
 	}
 
-	fmt.Println("URL: ", u)
+	const crlf = "\r\n"
+	bytesToWrite := len(rawURL) + len(crlf)
 
-	n, err := fmt.Fprintf(w, "%s\r\n", u)
+	bytesWritten, err := fmt.Fprintf(w, "%s%s", rawURL, crlf)
 	if err != nil {
 		return fmt.Errorf("could not send request: %w", err)
 	}
 
-	if n != len(u)+2 {
-		return fmt.Errorf("expected to write %d bytes, wrote %d", len(u)+2, n)
+	if bytesWritten != bytesToWrite {
+		return fmt.Errorf("expected to write %d bytes, wrote %d", bytesToWrite, bytesWritten)
 	}
 
 	return nil
 }
 
 func ParseURL(requestURL string) (*url.URL, error) {
-	u, err := url.Parse(requestURL)
+	parsedURL, err := url.Parse(requestURL)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error parsing URL (%s): %w", requestURL, err)
 	}
 
-	if u.Scheme == "" {
-		u.Scheme = "gemini"
+	if parsedURL.Scheme == "" {
+		parsedURL.Scheme = "gemini"
 	}
 
-	if u.Host == "" {
-		s := strings.TrimPrefix(u.String(), u.Scheme+"://")
+	if parsedURL.Host == "" {
+		s := strings.TrimPrefix(parsedURL.String(), parsedURL.Scheme+"://")
 		indx := strings.Index(s, "/")
+
 		host := s
 		if indx > -1 {
 			host = s[:indx]
 		}
-		u.Host = host
+
+		parsedURL.Host = host
 	}
 
-	u.Path = strings.TrimPrefix(
-		strings.TrimPrefix(requestURL, u.Scheme+"://"),
-		u.Host,
+	parsedURL.Path = strings.TrimPrefix(
+		strings.TrimPrefix(requestURL, parsedURL.Scheme+"://"),
+		parsedURL.Host,
 	)
 
-	return u, nil
+	return parsedURL, nil
 }
