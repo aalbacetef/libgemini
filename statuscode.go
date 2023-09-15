@@ -5,6 +5,7 @@ import "fmt"
 type StatusCode uint16
 
 const (
+	Unset                      StatusCode = 0
 	Input                      StatusCode = 10
 	SensitiveInput             StatusCode = 11
 	Success                    StatusCode = 20

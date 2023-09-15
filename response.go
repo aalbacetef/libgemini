@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"strconv"
 )
 
@@ -16,14 +15,14 @@ type Response struct {
 }
 
 type Header struct {
-	Status StatusCode
 	Meta   string
+	Status StatusCode
 }
 
 func (hdr Header) String() string {
 	return fmt.Sprintf(
-		"\nStatus: %s (is successful: %t)\nMeta: %s\n",
-		hdr.Status.String(), hdr.Status.IsSuccess(), hdr.Meta,
+		"\nStatus: %s\nMeta: %s\n",
+		hdr.Status.String(), hdr.Meta,
 	)
 }
 
@@ -41,9 +40,9 @@ const (
 
 func ReadResponse(r io.Reader) (Response, error) {
 	bytesRead := 0
-	parsedHeader := false
 	resp := Response{}
 
+	// @NOTE: this will never hit io.EOF.
 	for {
 		p := make([]byte, responsePreallocSize)
 
@@ -59,7 +58,7 @@ func ReadResponse(r io.Reader) (Response, error) {
 			return resp, nil
 		}
 
-		if !parsedHeader {
+		if resp.Header.Status == Unset {
 			index := bytes.Index(p, []byte{'\r', '\n'})
 			if index == -1 {
 				return resp, fmt.Errorf("no CRLF found")
@@ -71,12 +70,9 @@ func ReadResponse(r io.Reader) (Response, error) {
 			}
 
 			resp.Header = header
-			parsedHeader = true
 			p = p[index+2:]
 		}
 
-		log.Println("read bytes: ", bytesRead)
-		log.Println("p: ", string(p))
 		resp.Content = append(resp.Content, p...)
 
 		if errors.Is(err, io.EOF) {
