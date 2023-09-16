@@ -4,21 +4,29 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
-	"io"
 	"time"
 )
+
+const (
+	defaultTimeout = 30 * time.Second
+)
+
+func NewClient() Client {
+	return Client{
+		Timeout: defaultTimeout,
+		Config: &tls.Config{
+			MinVersion:         tls.VersionTLS13,
+			InsecureSkipVerify: true,
+		},
+	}
+}
 
 type Client struct {
 	Config  *tls.Config
 	Timeout time.Duration
 }
 
-const (
-	maxURLSize = 1024
-)
-
-// Get will make a request to the url specified by rawURL. To pass in a context
-// please use GetWithContext instead.
+// Get will call GetWithContext, passing in a context.WithTimeout using c.Timeout.
 func (c Client) Get(rawURL string) (Response, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), c.Timeout)
 	defer cancel()
@@ -26,6 +34,7 @@ func (c Client) Get(rawURL string) (Response, error) {
 	return c.GetWithContext(ctx, rawURL)
 }
 
+// GetWithContext will create a Request for the given rawURL and call DoWithContext on it.
 func (c Client) GetWithContext(ctx context.Context, rawURL string) (Response, error) {
 	req, err := NewRequest(rawURL)
 	if err != nil {
@@ -35,6 +44,8 @@ func (c Client) GetWithContext(ctx context.Context, rawURL string) (Response, er
 	return c.DoWithContext(ctx, req)
 }
 
+// Do will call DoWithContext, passing in a context.WithTimeout set to c.Timeout.
+// See: DoWithContext for more information.
 func (c Client) Do(req Request) (Response, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), c.Timeout)
 	defer cancel()
@@ -42,6 +53,8 @@ func (c Client) Do(req Request) (Response, error) {
 	return c.DoWithContext(ctx, req)
 }
 
+// DoWithContext will dial the host, connect to it, finally writing the request on the
+// connection.
 func (c Client) DoWithContext(ctx context.Context, req Request) (Response, error) {
 	c.Config.ServerName = req.u.Hostname()
 	d := tls.Dialer{Config: c.Config}
@@ -52,9 +65,7 @@ func (c Client) DoWithContext(ctx context.Context, req Request) (Response, error
 	}
 	defer conn.Close()
 
-	fmt.Println("REQ: ", req.u.String())
-
-	if sendErr := SendRequest(conn, req.u.String()); sendErr != nil {
+	if sendErr := req.Write(conn); sendErr != nil {
 		return Response{}, fmt.Errorf("error making request: %w", sendErr)
 	}
 
@@ -64,24 +75,4 @@ func (c Client) DoWithContext(ctx context.Context, req Request) (Response, error
 	}
 
 	return resp, nil
-}
-
-func SendRequest(w io.Writer, rawURL string) error {
-	if len(rawURL) > maxURLSize {
-		return fmt.Errorf("url length (%d) exceeds max size (%d)", len(rawURL), maxURLSize)
-	}
-
-	const crlf = "\r\n"
-	bytesToWrite := len(rawURL) + len(crlf)
-
-	bytesWritten, err := fmt.Fprintf(w, "%s%s", rawURL, crlf)
-	if err != nil {
-		return fmt.Errorf("could not send request: %w", err)
-	}
-
-	if bytesWritten != bytesToWrite {
-		return fmt.Errorf("expected to write %d bytes, wrote %d", bytesToWrite, bytesWritten)
-	}
-
-	return nil
 }
