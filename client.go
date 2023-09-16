@@ -5,8 +5,6 @@ import (
 	"crypto/tls"
 	"fmt"
 	"io"
-	"net/url"
-	"strings"
 	"time"
 )
 
@@ -16,33 +14,47 @@ type Client struct {
 }
 
 const (
-	GeminiPort = 1965
 	maxURLSize = 1024
 )
 
-func (c Client) Get(requestURL string) (Response, error) {
-	parsedURL, err := ParseURL(requestURL)
+// Get will make a request to the url specified by rawURL. To pass in a context
+// please use GetWithContext instead.
+func (c Client) Get(rawURL string) (Response, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), c.Timeout)
+	defer cancel()
+
+	return c.GetWithContext(ctx, rawURL)
+}
+
+func (c Client) GetWithContext(ctx context.Context, rawURL string) (Response, error) {
+	req, err := NewRequest(rawURL)
 	if err != nil {
 		return Response{}, err
 	}
 
-	parsedURL.Scheme = "gemini"
+	return c.DoWithContext(ctx, req)
+}
 
+func (c Client) Do(req Request) (Response, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), c.Timeout)
 	defer cancel()
 
-	c.Config.ServerName = parsedURL.Host
+	return c.DoWithContext(ctx, req)
+}
+
+func (c Client) DoWithContext(ctx context.Context, req Request) (Response, error) {
+	c.Config.ServerName = req.u.Hostname()
 	d := tls.Dialer{Config: c.Config}
 
-	addr := fmt.Sprintf("%s:%d", parsedURL.Host, GeminiPort)
-
-	conn, err := d.DialContext(ctx, "tcp", addr)
+	conn, err := d.DialContext(ctx, "tcp", req.u.Host)
 	if err != nil {
-		return Response{}, fmt.Errorf("error dialing (%s): %w", addr, err)
+		return Response{}, fmt.Errorf("error dialing (%s): %w", req.u.Host, err)
 	}
 	defer conn.Close()
 
-	if sendErr := SendRequest(conn, parsedURL.String()); sendErr != nil {
+	fmt.Println("REQ: ", req.u.String())
+
+	if sendErr := SendRequest(conn, req.u.String()); sendErr != nil {
 		return Response{}, fmt.Errorf("error making request: %w", sendErr)
 	}
 
@@ -72,34 +84,4 @@ func SendRequest(w io.Writer, rawURL string) error {
 	}
 
 	return nil
-}
-
-func ParseURL(requestURL string) (*url.URL, error) {
-	parsedURL, err := url.Parse(requestURL)
-	if err != nil {
-		return nil, fmt.Errorf("error parsing URL (%s): %w", requestURL, err)
-	}
-
-	if parsedURL.Scheme == "" {
-		parsedURL.Scheme = "gemini"
-	}
-
-	if parsedURL.Host == "" {
-		s := strings.TrimPrefix(parsedURL.String(), parsedURL.Scheme+"://")
-		indx := strings.Index(s, "/")
-
-		host := s
-		if indx > -1 {
-			host = s[:indx]
-		}
-
-		parsedURL.Host = host
-	}
-
-	parsedURL.Path = strings.TrimPrefix(
-		strings.TrimPrefix(requestURL, parsedURL.Scheme+"://"),
-		parsedURL.Host,
-	)
-
-	return parsedURL, nil
 }

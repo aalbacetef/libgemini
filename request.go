@@ -3,27 +3,30 @@ package libgemini
 import (
 	"fmt"
 	"net/url"
+	"strings"
 )
 
 const (
 	geminiScheme = "gemini"
+	geminiPort   = 1965
+	schemeDelim  = "://"
 )
 
 // NewRequest will take a raw url and parse it into a url.URL version.
 // It will take care of setting some fields, like the scheme, if they are
 // blank.
-func NewRequest(u string) (Request, error) {
-	uri, err := url.Parse(u)
+func NewRequest(rawURL string) (Request, error) {
+	if !strings.Contains(rawURL, schemeDelim) {
+		rawURL = geminiScheme + schemeDelim + rawURL
+	}
+
+	uri, err := url.Parse(rawURL)
 	if err != nil {
-		return Request{}, err
+		return Request{}, fmt.Errorf("could not parse URL (%s): %w", rawURL, err)
 	}
 
-	if uri.Scheme == "" {
-		uri.Scheme = geminiScheme
-	}
-
-	if uri.Scheme == "http" || uri.Scheme == "https" {
-		return Request{}, fmt.Errorf("scheme '%s' not supported", uri.Scheme)
+	if uri.Port() == "" && uri.Scheme == geminiScheme {
+		uri.Host = fmt.Sprintf("%s:%d", uri.Host, geminiPort)
 	}
 
 	req := Request{uri}
