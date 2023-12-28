@@ -1,7 +1,3 @@
-
-
-
-
 # output configuration options
 output:
   # colored-line-number|line-number|json|tab|checkstyle|code-climate, default is "colored-line-number"
@@ -24,10 +20,120 @@ output:
 
 
 linters-settings:
+  # asasalint:
+  #   # To specify a set of function names to exclude.
+  #   # The values are merged with the builtin exclusions.
+  #   # The builtin exclusions can be disabled by setting `use-builtin-exclusions` to `false`.
+  #   # Default: ["^(fmt|log|logger|t|)\.(Print|Fprint|Sprint|Fatal|Panic|Error|Warn|Warning|Info|Debug|Log)(|f|ln)$"]
+  #   exclude:
+  #     - Append
+  #     - \.Wrapf
+  #   # To enable/disable the asasalint builtin exclusions of function names.
+  #   # See the default value of `exclude` to get the builtin exclusions.
+  #   # Default: true
+  #   use-builtin-exclusions: false
+  #   # Ignore *_test.go files.
+  #   # Default: false
+  #   ignore-test: true
+
+  # bidichk:
+    # # The following configurations check for all mentioned invisible unicode runes.
+    # # All runes are enabled by default.
+    # left-to-right-embedding: false
+    # right-to-left-embedding: false
+    # pop-directional-formatting: false
+    # left-to-right-override: false
+    # right-to-left-override: false
+    # left-to-right-isolate: false
+    # right-to-left-isolate: false
+    # first-strong-isolate: false
+    # pop-directional-isolate: false
+
+  cyclop:
+    # The maximal code complexity to report.
+    # Default: 10
+    max-complexity: 20
+    # The maximal average package complexity.
+    # If it's higher than 0.0 (float) the check is enabled
+    # Default: 0.0
+    package-average: 5
+    # Should ignore tests.
+    # Default: false
+    skip-tests: true
+
+  # decorder:
+  #   # Required order of `type`, `const`, `var` and `func` declarations inside a file.
+  #   # Default: types before constants before variables before functions.
+  #   dec-order:
+  #     - type
+  #     - const
+  #     - var
+  #     - func
+  #   # If true, underscore vars (vars with "_" as the name) will be ignored at all checks
+  #   # Default: false (underscore vars are not ignored)
+  #   ignore-underscore-vars: false
+  #   # If true, order of declarations is not checked at all.
+  #   # Default: true (disabled)
+  #   disable-dec-order-check: false
+  #   # If true, `init` func can be anywhere in file (does not have to be declared before all other functions).
+  #   # Default: true (disabled)
+  #   disable-init-func-first-check: false
+  #   # If true, multiple global `type`, `const` and `var` declarations are allowed.
+  #   # Default: true (disabled)
+  #   disable-dec-num-check: false
+  #   # If true, type declarations will be ignored for dec num check
+  #   # Default: false (type statements are not ignored)
+  #   disable-type-dec-num-check: false
+  #   # If true, const declarations will be ignored for dec num check
+  #   # Default: false (const statements are not ignored)
+  #   disable-const-dec-num-check: false
+  #   # If true, var declarations will be ignored for dec num check
+  #   # Default: false (var statements are not ignored)
+  #   disable-var-dec-num-check: false
+
+  depguard:
+    # Rules to apply.
+    #
+    # Variables:
+    # - File Variables
+    #   you can still use and exclamation mark ! in front of a variable to say not to use it.
+    #   Example !$test will match any file that is not a go test file.
+    #
+    #   `$all` - matches all go files
+    #   `$test` - matches all go test files
+    #
+    # - Package Variables
+    #
+    #  `$gostd` - matches all of go's standard library (Pulled from `GOROOT`)
+    #
+    # Default: Only allow $gostd in all files.
+    rules:
+      # Name of a rule.
+      main:
+        # List of file globs that will match this list of settings to compare against.
+        # Default: $all
+        # files:
+        #   - "!**/*_a _file.go"
+        # List of allowed packages.
+        allow:
+          - github.com/aalbacetef
+        # Packages that are not allowed where the value is a suggestion.
+        deny: []
+  dogsled:
+    # Checks assignments with too many blank identifiers.
+    # Default: 2
+    max-blank-identifiers: 3
+
   dupl:
     # tokens count to trigger issue, 150 by default
-    threshold: 150
+    threshold: 100
 
+  dupword:
+    # Keywords for detecting duplicate words.
+    # If this list is not empty, only the words defined in this list will be detected.
+    # Default: []
+    keywords: []
+  
   errcheck:
     # report about not checking of errors in type assertions: `a := b.(MyStruct)`;
     # default is false: such cases aren't reported by default.
@@ -46,32 +152,99 @@ linters-settings:
     # see https://github.com/kisielk/errcheck#excluding-functions for details
     # exclude: /path/to/file.txt
 
+  errorlint:
+    # Check whether fmt.Errorf uses the %w verb for formatting errors.
+    # See the https://github.com/polyfloyd/go-errorlint for caveats.
+    # Default: true
+    errorf: true
+    # Permit more than 1 %w verb, valid per Go 1.20 (Requires errorf:true)
+    # Default: true
+    errorf-multi: true
+    # Check for plain type assertions and type switches.
+    # Default: true
+    asserts: true
+    # Check for plain error comparisons.
+    # Default: true
+    comparison: true
+
+  exhaustive:
+    # Program elements to check for exhaustiveness.
+    # Default: [ switch ]
+    check:
+      - switch
+      - map
+    # Check switch statements in generated files also.
+    # Default: false
+    check-generated: true
+    # Presence of "default" case in switch statements satisfies exhaustiveness,
+    # even if all enum members are not listed.
+    # Default: false
+    default-signifies-exhaustive: true
+    # Enum members matching the supplied regex do not have to be listed in
+    # switch statements to satisfy exhaustiveness.
+    # Default: ""
+    ignore-enum-members: "Example.+"
+    # Enum types matching the supplied regex do not have to be listed in
+    # switch statements to satisfy exhaustiveness.
+    # Default: ""
+    ignore-enum-types: "Example.+"
+    # Consider enums only in package scopes, not in inner scopes.
+    # Default: false
+    package-scope-only: true
+    # Only run exhaustive check on switches with "//exhaustive:enforce" comment.
+    # Default: false
+    explicit-exhaustive-switch: true
+    # Only run exhaustive check on map literals with "//exhaustive:enforce" comment.
+    # Default: false
+    explicit-exhaustive-map: true
+
+  exhaustruct:
+    # List of regular expressions to match struct packages and names.
+    # If this list is empty, all structs are tested.
+    # Default: []
+    include: []
+    # List of regular expressions to exclude struct packages and names from check.
+    # Default: []
+    exclude: []
+
+
   funlen:
     lines: 60
     statements: 40
+    ignore-comments: true
+  
+  gci:
+    sections:
+      - standard
+      - default 
+      - prefix(githubb.com/aalbacetef)
+    skip-generated: false
+    custom-order: true
 
   gocognit:
     # minimal code complexity to report, 30 by default (but we recommend 10-20)
-    min-complexity: 10
+    min-complexity: 15
 
   goconst:
     # minimal length of string constant, 3 by default
     min-len: 3
     # minimal occurrences count to trigger, 3 by default
     min-occurrences: 3 
+    ignore-tests: true 
+    # look for existing constants matching the values (default: true)
+    match-constant: true 
    
   godot:
     # comments to be checked: `declarations`, `toplevel`, or `all`
-    scope: declarations
+    scope: all
     # list of regexps for excluding particular comment lines from check
-    exclude:
+    exclude: []
       # example: exclude comments which contain numbers
       # - '[0-9]+'
+    # check that each sentence ends with a period 
+    period: true
     # check that each sentence starts with a capital letter
     capital: true
-  golint:
-    # minimal confidence for issues, default is 0.8
-    min-confidence: 0.8
 
   gomnd:
     settings:
@@ -82,11 +255,20 @@ linters-settings:
         # ignored-files: magic_.*.go
         # ignored-functions: math.*    
 
+
+  gosec:
+    includes: []
+    excludes: []
+    exclude-generated: false 
+    severity: low 
+    confidence: low 
+    concurrency: 2
+
+
   govet:
     # report about shadowed variables
     check-shadowing: true
     enable-all: true
-    disable: [fieldalignment]
     # settings per analyzer
     settings:
       # analyzer name, run `go tool vet help` to see all analyzers
@@ -98,6 +280,14 @@ linters-settings:
           - (github.com/golangci/golangci-lint/pkg/logutils.Log).Errorf
           - (github.com/golangci/golangci-lint/pkg/logutils.Log).Fatalf
 
+  interfacebloat:
+    max: 5
+ 
+  lll:
+    line-length: 120
+    tab-width: 1
+  maintidx:
+    under: 20
 
   misspell: 
     # Correct spellings using locale preferences for US or UK.
@@ -106,16 +296,77 @@ linters-settings:
     locale: US
     ignore-words: []
 
+  nakedret:
+    max-func-lines: 20
+
+  nestif:
+    min-complexity: 3
+
+  varnamelen:
+    # The longest distance, in source lines, that is being considered a "small scope".
+    # Variables used in at most this many lines will be ignored.
+    # Default: 5
+    max-distance: 6
+    # The minimum length of a variable's name that is considered "long".
+    # Variable names that are at least this long will be ignored.
+    # Default: 3
+    min-name-length: 3
+    # Check method receivers.
+    # Default: false
+    check-receiver: false
+    # Check named return values.
+    # Default: false
+    check-return: false
+    # Check type parameters.
+    # Default: false
+    check-type-param: false
+    # Ignore "ok" variables that hold the bool return value of a type assertion.
+    # Default: false
+    ignore-type-assert-ok: false
+    # Ignore "ok" variables that hold the bool return value of a map index.
+    # Default: false
+    ignore-map-index-ok: false
+    # Ignore "ok" variables that hold the bool return value of a channel receive.
+    # Default: false
+    ignore-chan-recv-ok: false
+    # Optional list of variable names that should be ignored completely.
+    # Default: []
+    ignore-names:
+      - err
+    # Optional list of variable declarations that should be ignored completely.
+    # Entries must be in one of the following forms (see below for examples):
+    # - for variables, parameters, named return values, method receivers, or type parameters:
+    #   <name> <type>  (<type> can also be a pointer/slice/map/chan/...)
+    # - for constants: const <name>
+    #
+    # Default: []
+    ignore-decls:
+      - c echo.Context
+      - t testing.T
+      - f *foo.Bar
+      - e error
+      - k int
+      - const C
+      - T any
+      - m map[string]int
+      - r io.Reader
+      - w io.Writer
+      - fd *os.File
+      - p []byte
+      - n int
+
+
 
 linters:
   disable-all: true
   enable:
+    - asasalint
     - bidichk
     - bodyclose
+    - containedctx
     - contextcheck
     - cyclop
-    - decorder
-    - depguard
+    # - decorder
     - dogsled
     - dupl
     - dupword
@@ -132,20 +383,41 @@ linters:
     - gocognit
     - goconst
     - godot
-    - golint
     - gomnd
     - gosimple
     - gosec
     - govet
+    - grouper
     - ineffassign
+    - interfacebloat
+    - ireturn
+    - lll
+    - maintidx 
     - misspell
+    - nakedret
+    - nestif
+    - nilnil
+    - nlreturn
+    - nolintlint
+    - nonamedreturns
     - prealloc
+    - predeclared
+    - reassign
+    # - revive
     - staticcheck
-    - structcheck
+    - stylecheck
+    - tagalign
+    - tagliatelle
+    - thelper
     - typecheck
     - unconvert
     - unused
-    - varcheck 
+    - usestdlibvars
+    - unparam
+    - varnamelen
+    - whitespace
+    - wrapcheck
+    - wsl
 
 
 issues:

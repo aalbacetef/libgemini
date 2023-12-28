@@ -4,42 +4,69 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
-	"io"
-	"net/url"
-	"strings"
 	"time"
 )
 
-type Client struct {
-	Timeout time.Duration
-	Config  *tls.Config
-}
-
 const (
-	GeminiPort = 1965
+	defaultTimeout = 30 * time.Second
 )
 
-func (c Client) Get(requestURL string) (Response, error) {
-	u, err := ParseURL(requestURL)
-	if err != nil {
-		return Response{}, err
+func NewClient() Client {
+	return Client{
+		Timeout: defaultTimeout,
+		Config: &tls.Config{
+			MinVersion:         tls.VersionTLS13,
+			InsecureSkipVerify: true,
+		},
 	}
-	u.Scheme = "gemini"
+}
 
+type Client struct {
+	Config  *tls.Config
+	Timeout time.Duration
+}
+
+// Get will call GetWithContext, passing in a context.WithTimeout using c.Timeout.
+func (c Client) Get(rawURL string) (Response, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), c.Timeout)
 	defer cancel()
 
-	c.Config.ServerName = u.Host
-	d := tls.Dialer{Config: c.Config}
+	return c.GetWithContext(ctx, rawURL)
+}
 
-	conn, err := d.DialContext(ctx, "tcp", fmt.Sprintf("%s:%d", u.Host, GeminiPort))
+// GetWithContext will create a Request for the given rawURL and call DoWithContext on it.
+func (c Client) GetWithContext(ctx context.Context, rawURL string) (Response, error) {
+	req, err := NewRequest(rawURL)
 	if err != nil {
 		return Response{}, err
 	}
+
+	return c.DoWithContext(ctx, req)
+}
+
+// Do will call DoWithContext, passing in a context.WithTimeout set to c.Timeout.
+// See: DoWithContext for more information.
+func (c Client) Do(req Request) (Response, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), c.Timeout)
+	defer cancel()
+
+	return c.DoWithContext(ctx, req)
+}
+
+// DoWithContext will dial the host, connect to it, finally writing the request on the
+// connection.
+func (c Client) DoWithContext(ctx context.Context, req Request) (Response, error) {
+	c.Config.ServerName = req.u.Hostname()
+	d := tls.Dialer{Config: c.Config}
+
+	conn, err := d.DialContext(ctx, "tcp", req.u.Host)
+	if err != nil {
+		return Response{}, fmt.Errorf("error dialing (%s): %w", req.u.Host, err)
+	}
 	defer conn.Close()
 
-	if err := SendRequest(conn, u.String()); err != nil {
-		return Response{}, err
+	if sendErr := req.Write(conn); sendErr != nil {
+		return Response{}, fmt.Errorf("error making request: %w", sendErr)
 	}
 
 	resp, err := ReadResponse(conn)
@@ -48,53 +75,4 @@ func (c Client) Get(requestURL string) (Response, error) {
 	}
 
 	return resp, nil
-}
-
-const maxURLSize = 1024
-
-func SendRequest(w io.Writer, u string) error {
-	if len(u) > maxURLSize {
-		return fmt.Errorf("url length (%d) exceeds max size (%d)", len(u), maxURLSize)
-	}
-
-	fmt.Println("URL: ", u)
-
-	n, err := fmt.Fprintf(w, "%s\r\n", u)
-	if err != nil {
-		return fmt.Errorf("could not send request: %w", err)
-	}
-
-	if n != len(u)+2 {
-		return fmt.Errorf("expected to write %d bytes, wrote %d", len(u)+2, n)
-	}
-
-	return nil
-}
-
-func ParseURL(requestURL string) (*url.URL, error) {
-	u, err := url.Parse(requestURL)
-	if err != nil {
-		return nil, err
-	}
-
-	if u.Scheme == "" {
-		u.Scheme = "gemini"
-	}
-
-	if u.Host == "" {
-		s := strings.TrimPrefix(u.String(), u.Scheme+"://")
-		indx := strings.Index(s, "/")
-		host := s
-		if indx > -1 {
-			host = s[:indx]
-		}
-		u.Host = host
-	}
-
-	u.Path = strings.TrimPrefix(
-		strings.TrimPrefix(requestURL, u.Scheme+"://"),
-		u.Host,
-	)
-
-	return u, nil
 }

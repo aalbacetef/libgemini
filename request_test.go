@@ -10,17 +10,17 @@ func TestRequest(t *testing.T) {
 	}{
 		{
 			"geminiprotocol.net",
-			"gemini://geminiprotocol.net",
+			"gemini://geminiprotocol.net:1965",
 			"no scheme, no path",
 		},
 		{
 			"geminiprotocol.net/docs",
-			"gemini://geminiprotocol.net/docs",
+			"gemini://geminiprotocol.net:1965/docs",
 			"no scheme, with path",
 		},
 		{
 			"gemini://geminiprotocol.net/docs",
-			"gemini://geminiprotocol.net/docs",
+			"gemini://geminiprotocol.net:1965/docs",
 			"with scheme, with path",
 		},
 	}

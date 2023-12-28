@@ -2,21 +2,25 @@ package libgemini
 
 import "fmt"
 
-type StatusCode uint16 // two bytes
+type StatusCode uint16
 
 const (
-	Input             StatusCode = 10
-	SensitiveInput    StatusCode = 11
-	Success           StatusCode = 20
-	RedirectTemporary            = 30
-	RedirectPermanent            = 31
-	TemporaryFailure             = 40
-	ServerUnavailable            = 41
-	CGIError                     = 42
-	ProxyError                   = 43
-	SlowDown                     = 44
-	PermanentFailure             = 50
-	NotFound                     = 51
+	Unset                      StatusCode = 0
+	Input                      StatusCode = 10
+	SensitiveInput             StatusCode = 11
+	Success                    StatusCode = 20
+	RedirectTemporary          StatusCode = 30
+	RedirectPermanent          StatusCode = 31
+	TemporaryFailure           StatusCode = 40
+	ServerUnavailable          StatusCode = 41
+	CGIError                   StatusCode = 42
+	ProxyError                 StatusCode = 43
+	SlowDown                   StatusCode = 44
+	PermanentFailure           StatusCode = 50
+	NotFound                   StatusCode = 51
+	ClientCertificatedRequired StatusCode = 60
+	CertificateNotAuthorized   StatusCode = 61
+	CertificateNotValid        StatusCode = 62
 )
 
 func (code StatusCode) IsSuccess() bool {
@@ -51,6 +55,12 @@ func (code StatusCode) String() string {
 		name = "Permanent Failure"
 	case NotFound:
 		name = "Not Found"
+	case ClientCertificatedRequired:
+		name = "Client Certificate Required"
+	case CertificateNotAuthorized:
+		name = "Certificate Not Authorized"
+	case CertificateNotValid:
+		name = "Certificate Not Valid"
 	}
 
 	return fmt.Sprintf("%d - %s", code, name)
