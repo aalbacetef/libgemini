@@ -116,7 +116,7 @@ linters-settings:
         #   - "!**/*_a _file.go"
         # List of allowed packages.
         allow:
-          - gitlab.com/aalbacetef
+          - github.com/aalbacetef
         # Packages that are not allowed where the value is a suggestion.
         deny: []
   dogsled:
@@ -217,7 +217,7 @@ linters-settings:
     sections:
       - standard
       - default 
-      - prefix(gitlab.com/aalbacetef)
+      - prefix(githubb.com/aalbacetef)
     skip-generated: false
     custom-order: true
 
