@@ -1,83 +1,41 @@
 package libgemini
 
 import (
-	"crypto/tls"
-	"fmt"
+	"bytes"
+	_ "embed"
+	"encoding/json"
 	"testing"
-	"time"
 )
 
-const (
-	testPort    = 1965
-	testTimeout = 5 * time.Second
-)
+//go:embed testdata/response.raw
+var testRawResponse []byte
+
+//go:embed testdata/response.json
+var testResponseJSON []byte
 
 func TestReadResponse(t *testing.T) {
-	const (
-		testHost = "gemini.circumlunar.space"
-		testPath = "/docs/specification.gmi"
-		testURL  = testHost + testPath
-	)
+	r := bytes.NewReader(testRawResponse)
 
-	cfg := &tls.Config{
-		MinVersion:         tls.VersionTLS13,
-		ServerName:         testHost,
-		InsecureSkipVerify: true,
-	}
-
-	conn, err := tls.Dial("tcp", fmt.Sprintf("%s:%d", testHost, testPort), cfg)
+	resp, err := ReadResponse(r)
 	if err != nil {
-		t.Fatalf("error: %v", err)
-	}
-	defer conn.Close()
-
-	t.Logf("connection established")
-
-	c := Client{
-		Config:  cfg,
-		Timeout: testTimeout,
+		t.Fatalf("could not read response: %v", err)
 	}
 
-	resp, err := c.Get(testURL)
+	want := testResponseJSON
+
+	got, err := json.MarshalIndent(resp, "", "  ")
 	if err != nil {
-		t.Fatalf("error: %v", err)
+		t.Fatalf("could not encode JSON: %v", err)
 	}
 
-	t.Logf("response: \n%+v", resp.Header)
-	t.Logf("content length: %d", len(resp.Content))
-}
-
-func TestResponse2(t *testing.T) {
-	const (
-		testHost = "geminiprotocol.net"
-		testPath = "/docs/specification.gmi"
-		testURL  = testHost + testPath
-	)
-
-	cfg := &tls.Config{
-		MinVersion:         tls.VersionTLS13,
-		ServerName:         testHost,
-		InsecureSkipVerify: true,
+	m, n := len(got), len(want)
+	if m != n {
+		t.Fatalf("(length) got %d bytes, want %d", m, n)
 	}
 
-	conn, err := tls.Dial("tcp", fmt.Sprintf("%s:%d", testHost, testPort), cfg)
-	if err != nil {
-		t.Fatalf("error: %v", err)
+	for k, b := range got {
+		if b != want[k] {
+			t.Fatalf("responses differ. got.Content: %s", string(resp.Content))
+		}
 	}
-	defer conn.Close()
-
-	t.Logf("connection established")
-
-	c := Client{
-		Config:  cfg,
-		Timeout: testTimeout,
-	}
-
-	resp, err := c.Get(testURL)
-	if err != nil {
-		t.Fatalf("error: %v", err)
-	}
-
-	t.Logf("response: \n%+v", resp.Header)
-	t.Logf("content length: %d", len(resp.Content))
 }
