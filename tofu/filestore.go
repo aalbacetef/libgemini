@@ -1,13 +1,41 @@
 package tofu
 
 import (
+	"errors"
 	"fmt"
 	"io/fs"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
 )
+
+func NewFileStore(fpath string) (*FileStore, error) {
+	if fpath == "" {
+		return nil, fmt.Errorf("invalid path provided: '%s'", fpath)
+	}
+
+	abspath, err := filepath.Abs(fpath)
+	if err != nil {
+		return nil, fmt.Errorf("invalid path: '%s'", fpath)
+	}
+
+	store := &FileStore{
+		fpath: abspath,
+		inmem: NewInMemoryStore(),
+	}
+
+	if err := store.readLatest(); err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
+			return store, store.writeFile()
+		}
+
+		return nil, err
+	}
+
+	return store, nil
+}
 
 // FileStore is implemented as an InMemoryStore that is backed
 // by a file.
@@ -33,6 +61,7 @@ func (store *FileStore) getLastUpdated() (time.Time, error) {
 
 func (store *FileStore) stale() (bool, error) {
 	lastModTime, err := store.getLastUpdated()
+
 	return lastModTime.After(store.lastUpdated), err
 }
 
