@@ -2,6 +2,16 @@ package tofu
 
 import "sync"
 
+const (
+	minMemStoreSize = 20
+)
+
+func NewInMemoryStore() *InMemoryStore {
+	return &InMemoryStore{
+		m: make(map[string][2]string, minMemStoreSize),
+	}
+}
+
 type InMemoryStore struct {
 	m  map[string][2]string
 	mu sync.Mutex
