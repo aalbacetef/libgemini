@@ -21,7 +21,7 @@ type Header struct {
 
 func (hdr Header) String() string {
 	return fmt.Sprintf(
-		"\nStatus: %s\nMeta: %s\n",
+		"Status: %s\nMeta: %s",
 		hdr.Status.String(), hdr.Meta,
 	)
 }
@@ -80,7 +80,7 @@ func parseHeader(respBytes []byte) (Header, int, error) {
 	}
 
 	n := index + TerminatorSize
-	p := respBytes[:n]
+	p := respBytes[:index]
 
 	hdr := Header{}
 
