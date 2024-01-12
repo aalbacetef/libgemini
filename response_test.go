@@ -4,6 +4,7 @@ import (
 	"bytes"
 	_ "embed"
 	"encoding/json"
+	"strings"
 	"testing"
 )
 
@@ -21,7 +22,7 @@ func TestReadResponse(t *testing.T) {
 		t.Fatalf("could not read response: %v", err)
 	}
 
-	want := testResponseJSON
+	want := trim(testResponseJSON)
 
 	got, err := json.MarshalIndent(resp, "", "  ")
 	if err != nil {
@@ -38,4 +39,8 @@ func TestReadResponse(t *testing.T) {
 			t.Fatalf("responses differ. got.Content: %s", string(resp.Content))
 		}
 	}
+}
+
+func trim(b []byte) []byte {
+	return []byte(strings.TrimSpace(string(b)))
 }
