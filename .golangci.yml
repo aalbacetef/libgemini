@@ -100,7 +100,18 @@ linters-settings:
 
   gosec:
     includes: []
-    excludes: ['G402']
+    excludes: 
+      # TLS InsecureSkipVerify set to true 
+      # we ignore this one because we're implementing TOFU 
+      # ourselves.
+      - 'G402' 
+      # Blocklisted import md5 and use of weak primitive 
+      # we ignore these because md5 is faster and aiming to 
+      # fully encrypt the user's known_hosts file is not the 
+      # aim of the package.
+      - 'G401' 
+      - 'G501' 
+    
     exclude-generated: false 
     severity: low 
     confidence: low 
