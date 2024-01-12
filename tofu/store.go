@@ -14,10 +14,6 @@ type Host struct {
 	Comment     string
 }
 
-func (h Host) String() string {
-	return hashFunc([]byte(h.Address)) + " " + h.Fingerprint + " " + h.Comment
-}
-
 func hashFunc(data []byte) string {
 	hash := md5.Sum(data)
 
@@ -45,7 +41,12 @@ var (
 )
 
 type Store interface {
+	// Add will add a host. If it is already known, it is
+	// expected implementations will return a ErrHostAlreadyExists.
 	Add(h Host) error
+
+	// Delete will delete the host if it found, otherwise
+	// it is expected implementations will return a ErrHostNotFound.
 	Delete(address string) error
 
 	// Lookup will check if a host is present otherwise it
@@ -54,8 +55,10 @@ type Store interface {
 	Lookup(address string) (Host, error)
 }
 
-// Verify will attempt to find a host matching the address
-// provided.
+// Verify performs TOFU verification on a Host using the
+// provided Store.
+// It returns true if the verification passes.
+// If a host is not known, it will add it to the known hosts.
 func Verify(store Store, host Host) (bool, error) {
 	storedHost, err := store.Lookup(host.Address)
 
@@ -68,12 +71,15 @@ func Verify(store Store, host Host) (bool, error) {
 	}
 
 	if err != nil {
-		return false, fmt.Errorf("error veriyfing: %w", err)
+		return false, fmt.Errorf("error verifying: %w", err)
 	}
 
 	return host.Fingerprint == storedHost.Fingerprint, nil
 }
 
+// Update will update use the Store's methods to update
+// a given host. It deletes the old host, then adds the new
+// one.
 func Update(store Store, h Host) error {
 	if err := store.Delete(h.Address); err != nil {
 		return fmt.Errorf("could not delete: %w", err)

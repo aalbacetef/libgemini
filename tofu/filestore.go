@@ -38,10 +38,10 @@ func NewFileStore(fpath string) (*FileStore, error) {
 }
 
 // FileStore is implemented as an InMemoryStore that is backed
-// by a file.
-// By convention, the public methods can be assumed to be concurrency-safe
-// but none of the private methods should be assumed to be concurrency-safe
-// as they may not be.
+// by a file. By convention, the public methods can be assumed
+// to be concurrency-safe but none of the private methods should
+// be assumed to be concurrency-safe as they may not be.
+//
 // @NOTE: consider if embedding the InMemoryStore and sharing the mutex.
 type FileStore struct {
 	fpath       string
@@ -53,7 +53,7 @@ type FileStore struct {
 func (store *FileStore) getLastUpdated() (time.Time, error) {
 	stat, err := os.Stat(store.fpath)
 	if err != nil {
-		return time.Time{}, err
+		return time.Time{}, fmt.Errorf("could not stat file: %w", err)
 	}
 
 	return stat.ModTime(), nil
@@ -87,6 +87,8 @@ func (store *FileStore) readLatest() error {
 
 const minLen = 2
 
+// parse takes in the string contents of the known_hosts
+// file and tries to build the known_hosts map.
 func parse(s string) (map[string][2]string, error) {
 	lines := strings.Split(s, "\n")
 	hostMap := make(map[string][2]string, len(lines))
@@ -124,6 +126,14 @@ func parse(s string) (map[string][2]string, error) {
 
 const fileMode = fs.FileMode(0o600)
 
+// writeFile serializes each Host entry into a
+// space-separated list of:
+//   - hash(address)
+//   - fingerprint
+//   - comment
+//
+// and then saves it to file.
+// It assumes that the data has been stored correctly.
 func (store *FileStore) writeFile() error {
 	store.inmem.mu.Lock()
 
@@ -150,6 +160,9 @@ func (store *FileStore) writeFile() error {
 	return nil
 }
 
+// Add will add a Host to the list of known hosts. If
+// the host has already been added, it will return a
+// ErrHostAlreadyExists error instead.
 func (store *FileStore) Add(h Host) error {
 	if err := store.inmem.Add(h); err != nil {
 		return err
@@ -161,6 +174,9 @@ func (store *FileStore) Add(h Host) error {
 	return store.writeFile()
 }
 
+// Delete will delete the Host matching address from the
+// known hosts.
+// If it has not been added, ErrHostNotFound will be returned.
 func (store *FileStore) Delete(address string) error {
 	if _, err := store.Lookup(address); err != nil {
 		return err
@@ -176,6 +192,9 @@ func (store *FileStore) Delete(address string) error {
 	return store.writeFile()
 }
 
+// Lookup will look for the host matching "address"
+// in the known_hosts file.
+// If no Host is found ErrHostNotFound is returned.
 func (store *FileStore) Lookup(address string) (Host, error) {
 	store.mu.Lock()
 	defer store.mu.Unlock()
