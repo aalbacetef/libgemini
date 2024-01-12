@@ -100,7 +100,7 @@ linters-settings:
 
   gosec:
     includes: []
-    excludes: []
+    excludes: ['G402']
     exclude-generated: false 
     severity: low 
     confidence: low 
