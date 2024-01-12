@@ -44,10 +44,10 @@ func NewFileStore(fpath string) (*FileStore, error) {
 //
 // @NOTE: consider if embedding the InMemoryStore and sharing the mutex.
 type FileStore struct {
-	fpath       string
-	lastUpdated time.Time
-	mu          sync.Mutex
 	inmem       *InMemoryStore
+	lastUpdated time.Time
+	fpath       string
+	mu          sync.Mutex
 }
 
 func (store *FileStore) getLastUpdated() (time.Time, error) {
