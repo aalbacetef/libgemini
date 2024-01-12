@@ -28,7 +28,7 @@ func (code StatusCode) IsSuccess() bool {
 }
 
 func (code StatusCode) String() string {
-	name := "Unknown (Not Predefined)"
+	name := ""
 
 	switch code {
 	case Input:
@@ -61,6 +61,8 @@ func (code StatusCode) String() string {
 		name = "Certificate Not Authorized"
 	case CertificateNotValid:
 		name = "Certificate Not Valid"
+	default:
+		name = "Unknown"
 	}
 
 	return fmt.Sprintf("%d - %s", code, name)
