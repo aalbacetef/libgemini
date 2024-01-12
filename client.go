@@ -5,18 +5,48 @@ import (
 	"crypto/tls"
 	"fmt"
 	"time"
+
+	"github.com/aalbacetef/libgemini/tofu"
 )
 
 const (
 	defaultTimeout = 30 * time.Second
+	// NOTE: read section 4.1 of the spec.
+	minTLSVersion = tls.VersionTLS12
 )
 
-func NewClient() Client {
+func NewClient(store tofu.Store) Client {
 	return Client{
 		Timeout: defaultTimeout,
 		Config: &tls.Config{
-			MinVersion:         tls.VersionTLS13,
+			MinVersion:         minTLSVersion,
 			InsecureSkipVerify: true,
+			VerifyConnection: func(state tls.ConnectionState) error {
+				addr := state.ServerName
+				peerCerts := state.PeerCertificates
+				if len(peerCerts) == 0 {
+					return fmt.Errorf("no peer certificates")
+				}
+
+				// NOTE: we only care about the leaf.
+				leaf := state.PeerCertificates[0]
+
+				host := tofu.Host{
+					Address:     addr,
+					Fingerprint: tofu.Fingerprint(leaf),
+				}
+
+				valid, err := tofu.Verify(store, host)
+				if err != nil {
+					return fmt.Errorf("error verifying: %w", err)
+				}
+
+				if !valid {
+					return fmt.Errorf("invalid certificate")
+				}
+
+				return nil
+			},
 		},
 	}
 }
