@@ -22,7 +22,7 @@ func NewClient(store tofu.Store) Client {
 			MinVersion:         minTLSVersion,
 			InsecureSkipVerify: true,
 			VerifyConnection: func(state tls.ConnectionState) error {
-				addr := state.ServerName
+
 				peerCerts := state.PeerCertificates
 				if len(peerCerts) == 0 {
 					return fmt.Errorf("no peer certificates")
@@ -32,7 +32,7 @@ func NewClient(store tofu.Store) Client {
 				leaf := state.PeerCertificates[0]
 
 				host := tofu.Host{
-					Address:     addr,
+					Address:     state.ServerName,
 					Fingerprint: tofu.Fingerprint(leaf),
 				}
 

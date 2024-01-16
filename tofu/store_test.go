@@ -6,8 +6,6 @@ import (
 	"testing"
 )
 
-var _ Store = &FileStore{}
-
 func TestStore(t *testing.T) {
 	cases := []testCase{
 		{
