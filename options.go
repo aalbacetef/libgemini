@@ -221,35 +221,25 @@ func resolveConfigFile() string {
 	return string(data)
 }
 
+const (
+	UserRWAllR     = fs.FileMode(0o644)
+	UserRWXAllNone = fs.FileMode(0o700)
+)
+
 func writeIfNotExists(fpath string, file []byte) {
 	if _, err := os.Stat(fpath); errors.Is(err, fs.ErrNotExist) {
-		os.WriteFile(fpath, file, fs.FileMode(0o644))
+		os.WriteFile(fpath, file, UserRWAllR)
 	}
 }
 
-// @TODO: log errors
+// @TODO: log errors.
 func resolveStore(storeOpt string) tofu.Store {
 	if storeOpt == InMemoryStoreVal {
 		return tofu.NewInMemoryStore()
 	}
 
 	if storeOpt == "" {
-		homeDir, err := os.UserHomeDir()
-		if err != nil {
-			return tofu.NewInMemoryStore()
-		}
-
-		libgeminiDir := filepath.Join(homeDir, ".config", "libgemini")
-		if err := os.MkdirAll(libgeminiDir, fs.FileMode(0o700)); err != nil {
-			return tofu.NewInMemoryStore()
-		}
-
-		store, err := tofu.NewFileStore(filepath.Join(libgeminiDir, "known_hosts"))
-		if err != nil {
-			return tofu.NewInMemoryStore()
-		}
-
-		return store
+		return defaultStoreOpt()
 	}
 
 	expanded := os.ExpandEnv(storeOpt)
@@ -258,6 +248,25 @@ func resolveStore(storeOpt string) tofu.Store {
 	}
 
 	store, err := tofu.NewFileStore(expanded)
+	if err != nil {
+		return tofu.NewInMemoryStore()
+	}
+
+	return store
+}
+
+func defaultStoreOpt() tofu.Store {
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return tofu.NewInMemoryStore()
+	}
+
+	libgeminiDir := filepath.Join(homeDir, ".config", "libgemini")
+	if err := os.MkdirAll(libgeminiDir, UserRWXAllNone); err != nil {
+		return tofu.NewInMemoryStore()
+	}
+
+	store, err := tofu.NewFileStore(filepath.Join(libgeminiDir, "known_hosts"))
 	if err != nil {
 		return tofu.NewInMemoryStore()
 	}
