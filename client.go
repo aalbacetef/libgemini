@@ -23,7 +23,7 @@ func NewClient(funcOpts ...OptsFn) Client {
 
 	store := resolveStore(options.StorePath)
 
-	var verifyFn verifyFunc = verifyConn(store)
+	verifyFn := verifyConn(store)
 	if options.Insecure {
 		verifyFn = func(tls.ConnectionState) error {
 			return nil
@@ -43,8 +43,8 @@ func NewClient(funcOpts ...OptsFn) Client {
 }
 
 type Client struct {
-	Options
 	TLSConfig *tls.Config
+	Options
 }
 
 type verifyFunc func(tls.ConnectionState) error
