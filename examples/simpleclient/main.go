@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/aalbacetef/libgemini"
-	"github.com/aalbacetef/libgemini/tofu"
 )
 
 func main() {
@@ -22,20 +21,15 @@ func main() {
 		return
 	}
 
-	var store tofu.Store = tofu.NewInMemoryStore()
-
+	storeOpt := libgemini.WithInMemoryStore()
 	if storePath != "" {
-		_store, err := tofu.NewFileStore(storePath)
-		if err != nil {
-			fmt.Println("error: ", err)
-
-			return
-		}
-
-		store = _store
+		storeOpt = libgemini.WithStore(storePath)
 	}
 
-	client := libgemini.NewClient(store)
+	client := libgemini.NewClient(
+		storeOpt,
+		libgemini.WithInsecure(),
+	)
 
 	// check a URL
 	resp, err := client.Get(url)
