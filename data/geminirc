@@ -1,0 +1,31 @@
+
+# Sample geminirc file.
+#
+# For boolean fields, uncomment to enable, comment to disable.
+
+## Automatically follow redirects.
+##
+# --follow 
+
+## Dump the trace to a file. 
+## Note that the file will be overwritten on each request.
+## 
+# --trace /tmp/libgemini-trace.txt
+
+## Dump headers of last request to a file.
+## Note that the file will be overwritten on each request.
+##
+# --dump-headers /tmp/libgemini-headers.txt
+
+
+## Skip TOFU verification.
+##
+# --insecure 
+
+## Set Store location.
+##
+# --store ~/.config/libgemini/known_hosts
+## 
+## To use an in-memory store:
+## 
+# --store :memory:
