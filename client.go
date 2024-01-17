@@ -10,7 +10,6 @@ import (
 )
 
 const (
-	defaultTimeout = 30 * time.Second
 	// NOTE: read section 4.1 of the spec.
 	minTLSVersion = tls.VersionTLS12
 )
