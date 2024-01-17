@@ -172,6 +172,24 @@ func toBool(s string) bool {
 
 type OptsFn func(*Options)
 
+func WithInMemoryStore() OptsFn {
+	return func(opts *Options) {
+		opts.StorePath = InMemoryStoreVal
+	}
+}
+
+func WithStore(val string) OptsFn {
+	return func(opts *Options) {
+		opts.StorePath = val
+	}
+}
+
+func WithInsecure() OptsFn {
+	return func(opts *Options) {
+		opts.Insecure = true
+	}
+}
+
 //go:embed data/geminirc
 var stubRCFile []byte
 
