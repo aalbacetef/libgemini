@@ -134,9 +134,13 @@ linters-settings:
   interfacebloat:
     max: 5
  
+  ireturn:
+    allow: "error,stdlib,tofu.Store"
+
   lll:
     line-length: 120
     tab-width: 1
+
   maintidx:
     under: 20
 
