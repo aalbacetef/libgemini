@@ -91,25 +91,19 @@ func envOpts() map[string]strOrBool {
 }
 
 const (
-	ConfigFollowRedirects = "follow-redirects"
-	ConfigStorePath       = "store-path"
+	ConfigFollowRedirects = "follow"
+	ConfigStore           = "store"
 	ConfigDumpHeaders     = "dump-headers"
 	ConfigTrace           = "trace"
 	ConfigInsecure        = "insecure"
 )
 
-func configOpts(fpath string) map[string]strOrBool {
+func configOpts(contents string) map[string]strOrBool {
 	opts := make(map[string]strOrBool)
 
-	if fpath == "" {
+	if contents == "" {
 		return opts
 	}
-
-	data, err := os.ReadFile(fpath)
-	if err != nil {
-		return opts
-	}
-	contents := string(data)
 
 	for _, line := range strings.Split(contents, "\n") {
 		l := strings.TrimSpace(line)
@@ -127,7 +121,7 @@ func configOpts(fpath string) map[string]strOrBool {
 		switch optName {
 		case ConfigFollowRedirects, ConfigInsecure:
 			opts[optName] = strOrBool{b: true}
-		case ConfigStorePath, ConfigDumpHeaders, ConfigTrace:
+		case ConfigStore, ConfigDumpHeaders, ConfigTrace:
 			val := strings.TrimSpace(strings.Join(parts[1:], " "))
 			if val == "" {
 				continue
