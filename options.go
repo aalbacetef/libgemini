@@ -13,12 +13,12 @@ import (
 )
 
 type Options struct {
-	Timeout         time.Duration
-	FollowRedirects bool
 	StorePath       string
 	RCFilepath      string
 	DumpHeaders     string
 	Trace           string
+	Timeout         time.Duration
+	FollowRedirects bool
 	Insecure        bool
 }
 
@@ -193,10 +193,16 @@ func WithInsecure() OptsFn {
 //go:embed data/geminirc
 var stubRCFile []byte
 
-// @TODO: log errors
+const (
+	UserRWAllR     = fs.FileMode(0o644)
+	UserRWXAllNone = fs.FileMode(0o700)
+)
+
+// @TODO: log errors.
 func resolveConfigFile() string {
 	if val, set := os.LookupEnv(EnvRC); set {
 		writeIfNotExists(val, stubRCFile)
+
 		return val
 	}
 
@@ -206,7 +212,7 @@ func resolveConfigFile() string {
 	}
 
 	libgeminiDir := filepath.Join(homeDir, ".config", "libgemini")
-	if err := os.MkdirAll(libgeminiDir, fs.FileMode(0o700)); err != nil {
+	if mkErr := os.MkdirAll(libgeminiDir, UserRWXAllNone); mkErr != nil {
 		return ""
 	}
 
@@ -221,14 +227,10 @@ func resolveConfigFile() string {
 	return string(data)
 }
 
-const (
-	UserRWAllR     = fs.FileMode(0o644)
-	UserRWXAllNone = fs.FileMode(0o700)
-)
-
+// @TODO: log errors.
 func writeIfNotExists(fpath string, file []byte) {
 	if _, err := os.Stat(fpath); errors.Is(err, fs.ErrNotExist) {
-		os.WriteFile(fpath, file, UserRWAllR)
+		_ = os.WriteFile(fpath, file, UserRWAllR) //nolint: errcheck
 	}
 }
 
@@ -262,7 +264,7 @@ func defaultStoreOpt() tofu.Store {
 	}
 
 	libgeminiDir := filepath.Join(homeDir, ".config", "libgemini")
-	if err := os.MkdirAll(libgeminiDir, UserRWXAllNone); err != nil {
+	if mkErr := os.MkdirAll(libgeminiDir, UserRWXAllNone); mkErr != nil {
 		return tofu.NewInMemoryStore()
 	}
 
