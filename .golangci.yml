@@ -166,6 +166,7 @@ linters-settings:
     ignore-names:
       - err
       - c
+      - l
     ignore-decls:
       - c echo.Context
       - t *testing.T
