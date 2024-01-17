@@ -201,7 +201,12 @@ func resolveConfigFile() string {
 	cfgFile := filepath.Join(libgeminiDir, "geminirc")
 	writeIfNotExists(cfgFile, stubRCFile)
 
-	return cfgFile
+	data, err := os.ReadFile(cfgFile)
+	if err != nil {
+		return ""
+	}
+
+	return string(data)
 }
 
 func writeIfNotExists(fpath string, file []byte) {
