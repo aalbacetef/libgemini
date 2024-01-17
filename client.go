@@ -31,8 +31,9 @@ func NewClient(funcOpts ...OptsFn) Client {
 	}
 
 	tlsConfig := &tls.Config{
-		MinVersion:       minTLSVersion,
-		VerifyConnection: verifyFn,
+		MinVersion:         minTLSVersion,
+		InsecureSkipVerify: true,
+		VerifyConnection:   verifyFn,
 	}
 
 	return Client{
@@ -106,8 +107,12 @@ func (c Client) Do(req Request) (Response, error) {
 // DoWithContext will dial the host, connect to it, finally writing the request on the
 // connection.
 func (c Client) DoWithContext(ctx context.Context, req Request) (Response, error) {
-	c.TLSConfig.ServerName = req.u.Hostname()
-	d := tls.Dialer{Config: c.TLSConfig}
+	cfg := c.TLSConfig.Clone()
+	cfg.ServerName = req.u.Hostname()
+
+	d := tls.Dialer{
+		Config: cfg,
+	}
 
 	conn, err := d.DialContext(ctx, "tcp", req.u.Host)
 	if err != nil {
