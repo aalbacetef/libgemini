@@ -15,45 +15,65 @@ const (
 	minTLSVersion = tls.VersionTLS12
 )
 
-func NewClient(store tofu.Store) Client {
+func NewClient(funcOpts ...OptsFn) Client {
+	options := mergeOpts(defaultOpts(), configOpts(resolveConfigFile()), envOpts())
+	for _, fn := range funcOpts {
+		fn(&options)
+	}
+
+	store := resolveStore(options.StorePath)
+
+	var verifyFn verifyFunc = verifyConn(store)
+	if options.Insecure {
+		verifyFn = func(tls.ConnectionState) error {
+			return nil
+		}
+	}
+
+	tlsConfig := &tls.Config{
+		MinVersion:       minTLSVersion,
+		VerifyConnection: verifyFn,
+	}
+
 	return Client{
-		Timeout: defaultTimeout,
-		Config: &tls.Config{
-			MinVersion:         minTLSVersion,
-			InsecureSkipVerify: true,
-			VerifyConnection: func(state tls.ConnectionState) error {
-
-				peerCerts := state.PeerCertificates
-				if len(peerCerts) == 0 {
-					return fmt.Errorf("no peer certificates")
-				}
-
-				// NOTE: we only care about the leaf.
-				leaf := state.PeerCertificates[0]
-
-				host := tofu.Host{
-					Address:     state.ServerName,
-					Fingerprint: tofu.Fingerprint(leaf),
-				}
-
-				valid, err := tofu.Verify(store, host)
-				if err != nil {
-					return fmt.Errorf("error verifying: %w", err)
-				}
-
-				if !valid {
-					return fmt.Errorf("invalid certificate")
-				}
-
-				return nil
-			},
-		},
+		Options:   options,
+		TLSConfig: tlsConfig,
 	}
 }
 
 type Client struct {
-	Config  *tls.Config
-	Timeout time.Duration
+	Options
+	TLSConfig *tls.Config
+}
+
+type verifyFunc func(tls.ConnectionState) error
+
+func verifyConn(store tofu.Store) verifyFunc {
+	return func(state tls.ConnectionState) error {
+		peerCerts := state.PeerCertificates
+		if len(peerCerts) == 0 {
+			return fmt.Errorf("no peer certificates")
+		}
+
+		// NOTE: we only care about the leaf.
+		leaf := state.PeerCertificates[0]
+
+		host := tofu.Host{
+			Address:     state.ServerName,
+			Fingerprint: tofu.Fingerprint(leaf),
+		}
+
+		valid, err := tofu.Verify(store, host)
+		if err != nil {
+			return fmt.Errorf("error verifying: %w", err)
+		}
+
+		if !valid {
+			return fmt.Errorf("invalid certificate")
+		}
+
+		return nil
+	}
 }
 
 // Get will call GetWithContext, passing in a context.WithTimeout using c.Timeout.
