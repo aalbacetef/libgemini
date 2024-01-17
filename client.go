@@ -106,8 +106,8 @@ func (c Client) Do(req Request) (Response, error) {
 // DoWithContext will dial the host, connect to it, finally writing the request on the
 // connection.
 func (c Client) DoWithContext(ctx context.Context, req Request) (Response, error) {
-	c.Config.ServerName = req.u.Hostname()
-	d := tls.Dialer{Config: c.Config}
+	c.TLSConfig.ServerName = req.u.Hostname()
+	d := tls.Dialer{Config: c.TLSConfig}
 
 	conn, err := d.DialContext(ctx, "tcp", req.u.Host)
 	if err != nil {
