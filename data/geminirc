@@ -18,7 +18,7 @@
 # --dump-headers /tmp/libgemini-headers.txt
 
 
-## Skip TOFU verification.
+## Skip TOFU verification. Overrides --store.
 ##
 # --insecure 
 
