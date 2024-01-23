@@ -21,7 +21,7 @@ $ go get -u github.com/aalbacetef/libgemini
 
 ## Usage 
 
-For a working example, see [examples/simpleclient/].
+For a working example, see [examples/simpleclient].
 
 
 ## geminirc 
