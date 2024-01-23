@@ -2,7 +2,7 @@
 
 # Introduction 
 
-This example shows how to use the library to build a very basic client. 
+This example shows how to use the library to build a client with options.
 
 # Usage 
 
