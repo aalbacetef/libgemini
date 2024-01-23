@@ -183,6 +183,7 @@ linters-settings:
       - fd *os.File
       - p []byte
       - n int
+      - wc io.WriteCloser
 
 
 
