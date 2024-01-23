@@ -37,7 +37,7 @@ func TestLogger(t *testing.T) {
 
 	t.Run("it writes to the logger", func(tt *testing.T) {
 		l.Info(testMsg, "buf", buf)
-		if strings.Contains(buf.String(), testMsg) {
+		if !strings.Contains(buf.String(), testMsg) {
 			tt.Fatalf("did not find test message '%s' in buffer", testMsg)
 		}
 	})
