@@ -167,6 +167,7 @@ linters-settings:
       - err
       - c
       - l
+      - ch
     ignore-decls:
       - c echo.Context
       - t *testing.T
