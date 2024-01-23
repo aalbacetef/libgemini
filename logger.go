@@ -23,7 +23,7 @@ func NewFileHandler(ctx context.Context, wc io.WriteCloser) FileHandler {
 
 	return FileHandler{
 		wc:      wc,
-		Handler: slog.NewTextHandler(wc, nil),
+		Handler: slog.NewJSONHandler(wc, nil),
 	}
 }
 
