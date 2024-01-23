@@ -135,7 +135,7 @@ linters-settings:
     max: 5
  
   ireturn:
-    allow: "error,stdlib,tofu.Store"
+    allow: "error,stdlib,tofu.Store,slog.Handler"
 
   lll:
     line-length: 120
