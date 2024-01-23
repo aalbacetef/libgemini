@@ -149,7 +149,6 @@ func mergeOpts(base Options, applyOpts ...map[string]strOrBool) Options {
 
 	for _, opts := range applyOpts {
 		for key, val := range opts {
-
 			switch key {
 			case KeyRC:
 				base.RCFilepath = val.s
