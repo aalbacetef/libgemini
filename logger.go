@@ -11,19 +11,19 @@ import (
 )
 
 type FileHandler struct {
-	fd io.WriteCloser
+	wc io.WriteCloser
 	slog.Handler
 }
 
-func NewFileHandler(ctx context.Context, fd io.WriteCloser) FileHandler {
+func NewFileHandler(ctx context.Context, wc io.WriteCloser) FileHandler {
 	go func() {
 		<-ctx.Done()
-		fd.Close()
+		wc.Close()
 	}()
 
 	return FileHandler{
-		fd:      fd,
-		Handler: slog.NewTextHandler(fd, nil),
+		wc:      wc,
+		Handler: slog.NewTextHandler(wc, nil),
 	}
 }
 
