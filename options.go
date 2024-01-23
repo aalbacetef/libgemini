@@ -105,6 +105,14 @@ func configOpts(contents string) map[string]strOrBool {
 		return opts
 	}
 
+	lookup := map[string]string{
+		ConfigFollowRedirects: KeyFollowRedirects,
+		ConfigInsecure:        KeyInsecure,
+		ConfigStore:           KeyStorePath,
+		ConfigDumpHeaders:     KeyDumpHeaders,
+		ConfigTrace:           KeyTrace,
+	}
+
 	for _, line := range strings.Split(contents, "\n") {
 		l := strings.TrimSpace(line)
 		if l == "" {
@@ -120,14 +128,14 @@ func configOpts(contents string) map[string]strOrBool {
 
 		switch optName {
 		case ConfigFollowRedirects, ConfigInsecure:
-			opts[optName] = strOrBool{b: true}
+			opts[lookup[optName]] = strOrBool{b: true}
 		case ConfigStore, ConfigDumpHeaders, ConfigTrace:
 			val := strings.TrimSpace(strings.Join(parts[1:], " "))
 			if val == "" {
 				continue
 			}
 			// NOTE: maybe add a strings.Split(val, "#")[0] to allow comments on the same line?
-			opts[optName] = strOrBool{s: val}
+			opts[lookup[optName]] = strOrBool{s: val}
 		}
 	}
 

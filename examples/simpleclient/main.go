@@ -26,10 +26,14 @@ func main() {
 		storeOpt = libgemini.WithStore(storePath)
 	}
 
-	client := libgemini.NewClient(
+	client, err := libgemini.NewClient(
 		storeOpt,
 		libgemini.WithInsecure(),
 	)
+	if err != nil {
+		fmt.Println("error: ", err)
+		return
+	}
 
 	// check a URL
 	resp, err := client.Get(url)

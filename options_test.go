@@ -11,10 +11,10 @@ var rcTestFile []byte
 func TestConfigFile(t *testing.T) {
 	opts := configOpts(string(rcTestFile))
 	want := map[string]strOrBool{
-		ConfigFollowRedirects: {b: true},
-		ConfigTrace:           {s: "/tmp/libgemini-trace.txt"},
-		ConfigInsecure:        {b: true},
-		ConfigStore:           {s: "~/.config/libgemini/known_hosts"},
+		KeyFollowRedirects: {b: true},
+		KeyTrace:           {s: "/tmp/libgemini-trace.txt"},
+		KeyInsecure:        {b: true},
+		KeyStorePath:       {s: "~/.config/libgemini/known_hosts"},
 	}
 
 	for key, val := range want {

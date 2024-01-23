@@ -135,7 +135,7 @@ linters-settings:
     max: 5
  
   ireturn:
-    allow: "error,stdlib,tofu.Store"
+    allow: "error,stdlib,tofu.Store,slog.Handler"
 
   lll:
     line-length: 120
@@ -167,6 +167,7 @@ linters-settings:
       - err
       - c
       - l
+      - ch
     ignore-decls:
       - c echo.Context
       - t *testing.T
@@ -182,6 +183,7 @@ linters-settings:
       - fd *os.File
       - p []byte
       - n int
+      - wc io.WriteCloser
 
 
 
