@@ -4,7 +4,6 @@ import (
 	_ "embed"
 	"errors"
 	"io/fs"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
