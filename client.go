@@ -141,10 +141,6 @@ func (c *Client) DoWithContext(_ctx context.Context, req Request) (Response, err
 	cfg := c.TLSConfig.Clone()
 	cfg.ServerName = req.u.Hostname()
 
-	d := tls.Dialer{
-		Config: cfg,
-	}
-
 	traceLogger.Info(
 		"tls config",
 		"ServerName", cfg.ServerName,
@@ -155,6 +151,10 @@ func (c *Client) DoWithContext(_ctx context.Context, req Request) (Response, err
 	headersLogger, err := NewLoggerFromPath(ctx, c.Options.DumpHeaders)
 	if err != nil {
 		return Response{}, err
+	}
+
+	d := tls.Dialer{
+		Config: cfg,
 	}
 
 	conn, err := d.DialContext(ctx, "tcp", req.u.Host)
