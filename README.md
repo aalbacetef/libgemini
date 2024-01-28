@@ -16,7 +16,7 @@ Support for writing servers and gemtext parsing is on the roadmap.
 ## Installation 
 
 ```bash
-$ go get -u github.com/aalbacetef/libgemini
+$ go get -u github.com/aalbacetef/libgemini@latest
 ```
 
 ## Usage 
