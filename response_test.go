@@ -3,7 +3,6 @@ package libgemini
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"os"
 	"strings"
 	"testing"
