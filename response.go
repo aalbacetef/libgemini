@@ -62,7 +62,9 @@ func ReadResponse(r io.Reader) (Response, error) {
 			}
 
 			p = p[bytesRead:]
+
 			resp.Header = header
+			resp.MIME = mimeFromHeader(header)
 		}
 
 		resp.Content = append(resp.Content, p...)
@@ -72,6 +74,8 @@ func ReadResponse(r io.Reader) (Response, error) {
 		}
 	}
 }
+
+const DefaultMimeType = "text/gemini; charset=utf-8"
 
 func parseHeader(respBytes []byte) (Header, int, error) {
 	index := bytes.Index(respBytes, []byte{'\r', '\n'})
@@ -103,4 +107,17 @@ func parseHeader(respBytes []byte) (Header, int, error) {
 	}
 
 	return hdr, n, nil
+}
+
+func mimeFromHeader(hdr Header) string {
+	if !hdr.Status.IsSuccess() {
+		return ""
+	}
+
+	m := hdr.Meta
+	if m == "" {
+		m = DefaultMimeType
+	}
+
+	return m
 }
