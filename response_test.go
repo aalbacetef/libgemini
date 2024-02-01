@@ -9,12 +9,14 @@ import (
 	"testing"
 )
 
+type testCase = struct {
+	label   string
+	rawResp []byte
+	want    []byte
+}
+
 func TestReadResponse(t *testing.T) {
-	cases := []struct {
-		label   string
-		rawResp []byte
-		want    []byte
-	}{
+	cases := []testCase{
 		{
 			"response with MIME",
 			mustReadFile(t, "testdata/response.raw"),
@@ -29,35 +31,46 @@ func TestReadResponse(t *testing.T) {
 
 	for _, c := range cases {
 		t.Run(c.label, func(tt *testing.T) {
-			r := bytes.NewReader(c.rawResp)
-
-			resp, err := ReadResponse(r)
-			if err != nil {
-				tt.Fatalf("could not read response: %v", err)
-			}
-
-			want := trim(c.want)
-
-			got, err := json.MarshalIndent(resp, "", "  ")
-			if err != nil {
-				tt.Fatalf("could not encode JSON: %v", err)
-			}
-
-			wantR := Response{}
-			_ = json.Unmarshal(want, &wantR)
-
-			m, n := len(got), len(want)
-			if m != n {
-				tt.Fatalf("(length) got %d bytes, want %d", m, n)
-			}
-
-			for k, b := range got {
-				if b != want[k] {
-					fmt.Println(wantR.Content)
-					tt.Fatalf("responses differ. got.Content: '%s', want: '%s'", string(resp.Content), string(wantR.Content))
-				}
-			}
+			runTest(tt, c)
 		})
+	}
+}
+
+func runTest(t *testing.T, c testCase) {
+	t.Helper()
+
+	r := bytes.NewReader(c.rawResp)
+
+	resp, err := ReadResponse(r)
+	if err != nil {
+		t.Fatalf("could not read response: %v", err)
+	}
+
+	want := trim(c.want)
+
+	got, err := json.MarshalIndent(resp, "", "  ")
+	if err != nil {
+		t.Fatalf("could not encode JSON: %v", err)
+	}
+
+	wantR := Response{}
+
+	if err := json.Unmarshal(want, &wantR); err != nil {
+		t.Fatalf("could not unmarshal json: %v", err)
+	}
+
+	m, n := len(got), len(want)
+	if m != n {
+		t.Fatalf("(length) got %d bytes, want %d", m, n)
+	}
+
+	for k, b := range got {
+		if b != want[k] {
+			t.Fatalf(
+				"responses differ. got.Content: '%s', want: '%s'",
+				string(resp.Content), string(wantR.Content),
+			)
+		}
 	}
 }
 
