@@ -21,7 +21,7 @@ type Header struct {
 
 func (hdr Header) String() string {
 	return fmt.Sprintf(
-		"\nStatus: %s\nMeta: %s\n",
+		"Status: %s\nMeta: %s",
 		hdr.Status.String(), hdr.Meta,
 	)
 }
@@ -30,8 +30,8 @@ const (
 	sizeStatusCode       = 2 // Size in bytes.
 	maxMetaSize          = 1024
 	spaceSize            = 1
-	EOFSize              = 2 // Size of \r\n.
-	minResponseSize      = sizeStatusCode + spaceSize + EOFSize
+	TerminatorSize       = 2 // Size of \r\n.
+	minResponseSize      = sizeStatusCode + spaceSize + TerminatorSize
 	maxResponseSize      = minResponseSize + maxMetaSize
 	spaceByte            = 0x20
 	kb                   = 1024
@@ -39,10 +39,8 @@ const (
 )
 
 func ReadResponse(r io.Reader) (Response, error) {
-	bytesRead := 0
 	resp := Response{}
 
-	// @NOTE: this will never hit io.EOF.
 	for {
 		p := make([]byte, responsePreallocSize)
 
@@ -51,7 +49,6 @@ func ReadResponse(r io.Reader) (Response, error) {
 			return resp, fmt.Errorf("error reading response: %w", err)
 		}
 
-		bytesRead += n
 		p = p[:n]
 
 		if n == 0 {
@@ -59,18 +56,13 @@ func ReadResponse(r io.Reader) (Response, error) {
 		}
 
 		if resp.Header.Status == Unset {
-			index := bytes.Index(p, []byte{'\r', '\n'})
-			if index == -1 {
-				return resp, fmt.Errorf("no CRLF found")
-			}
-
-			header, parseErr := parseHeader(p[:index+2])
+			header, bytesRead, parseErr := parseHeader(p)
 			if parseErr != nil {
 				return resp, fmt.Errorf("error parsing header: %w", parseErr)
 			}
 
+			p = p[bytesRead:]
 			resp.Header = header
-			p = p[index+2:]
 		}
 
 		resp.Content = append(resp.Content, p...)
@@ -81,17 +73,25 @@ func ReadResponse(r io.Reader) (Response, error) {
 	}
 }
 
-func parseHeader(p []byte) (Header, error) {
+func parseHeader(respBytes []byte) (Header, int, error) {
+	index := bytes.Index(respBytes, []byte{'\r', '\n'})
+	if index == -1 {
+		return Header{}, 0, fmt.Errorf("no CRLF found")
+	}
+
+	n := index + TerminatorSize
+	p := respBytes[:index]
+
 	hdr := Header{}
 
 	spaceIndex := bytes.IndexByte(p, spaceByte)
 	if spaceIndex == -1 {
-		return Header{}, fmt.Errorf("could not find space")
+		return Header{}, 0, fmt.Errorf("could not find space")
 	}
 
 	code, err := strconv.Atoi(string(p[:spaceIndex]))
 	if err != nil {
-		return hdr, fmt.Errorf("could not parse status code: %w", err)
+		return hdr, 0, fmt.Errorf("could not parse status code: %w", err)
 	}
 
 	hdr.Status = StatusCode(code)
@@ -99,8 +99,8 @@ func parseHeader(p []byte) (Header, error) {
 
 	metaBytes := len(hdr.Meta)
 	if metaBytes > maxMetaSize {
-		return hdr, fmt.Errorf("max meta size of %d bytes exceeded, got %d bytes", maxMetaSize, metaBytes)
+		return hdr, 0, fmt.Errorf("max meta size of %d bytes exceeded, got %d bytes", maxMetaSize, metaBytes)
 	}
 
-	return hdr, nil
+	return hdr, n, nil
 }

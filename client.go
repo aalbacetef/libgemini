@@ -4,30 +4,100 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
-	"time"
+
+	"github.com/aalbacetef/libgemini/tofu"
 )
 
-const (
-	defaultTimeout = 30 * time.Second
-)
+func NewClient(userOpts ...OptsFn) (*Client, error) {
+	c := &Client{userOpts: userOpts}
+	c.refresh()
 
-func NewClient() Client {
-	return Client{
-		Timeout: defaultTimeout,
-		Config: &tls.Config{
-			MinVersion:         tls.VersionTLS13,
-			InsecureSkipVerify: true,
-		},
-	}
+	return c, nil
 }
 
 type Client struct {
-	Config  *tls.Config
-	Timeout time.Duration
+	TLSConfig *tls.Config
+	userOpts  []OptsFn
+	Options
+}
+
+func (c *Client) refresh() {
+	options := resolveOptions(c.userOpts...)
+
+	c.Options = options
+	c.TLSConfig = tlsConfigFromOptions(options)
+}
+
+const (
+	// NOTE: read section 4.1 of the spec.
+	minTLSVersion = tls.VersionTLS12
+)
+
+func tlsConfigFromOptions(options Options) *tls.Config {
+	store := resolveStore(options.StorePath)
+
+	verifyFn := verifyConn(store)
+	if options.Insecure {
+		verifyFn = func(tls.ConnectionState) error {
+			return nil
+		}
+	}
+
+	tlsConfig := &tls.Config{
+		MinVersion:         minTLSVersion,
+		InsecureSkipVerify: true,
+		VerifyConnection:   verifyFn,
+	}
+
+	return tlsConfig
+}
+
+func resolveOptions(userOptions ...OptsFn) Options {
+	options := mergeOpts(
+		defaultOpts(),
+		configOpts(resolveConfigFile()),
+		envOpts(),
+	)
+
+	for _, fn := range userOptions {
+		fn(&options)
+	}
+
+	return options
+}
+
+type verifyFunc func(tls.ConnectionState) error
+
+func verifyConn(store tofu.Store) verifyFunc {
+	return func(state tls.ConnectionState) error {
+		peerCerts := state.PeerCertificates
+		if len(peerCerts) == 0 {
+			return fmt.Errorf("no peer certificates")
+		}
+
+		// NOTE: we only care about the leaf.
+		leaf := state.PeerCertificates[0]
+
+		host := tofu.Host{
+			Address:     state.ServerName,
+			Fingerprint: tofu.Fingerprint(leaf),
+		}
+
+		valid, err := tofu.Verify(store, host)
+		if err != nil {
+			return fmt.Errorf("error verifying: %w", err)
+		}
+
+		if !valid {
+			return fmt.Errorf("invalid certificate")
+		}
+
+		return nil
+	}
 }
 
 // Get will call GetWithContext, passing in a context.WithTimeout using c.Timeout.
-func (c Client) Get(rawURL string) (Response, error) {
+func (c *Client) Get(rawURL string) (Response, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), c.Timeout)
 	defer cancel()
 
@@ -35,7 +105,7 @@ func (c Client) Get(rawURL string) (Response, error) {
 }
 
 // GetWithContext will create a Request for the given rawURL and call DoWithContext on it.
-func (c Client) GetWithContext(ctx context.Context, rawURL string) (Response, error) {
+func (c *Client) GetWithContext(ctx context.Context, rawURL string) (Response, error) {
 	req, err := NewRequest(rawURL)
 	if err != nil {
 		return Response{}, err
@@ -46,7 +116,7 @@ func (c Client) GetWithContext(ctx context.Context, rawURL string) (Response, er
 
 // Do will call DoWithContext, passing in a context.WithTimeout set to c.Timeout.
 // See: DoWithContext for more information.
-func (c Client) Do(req Request) (Response, error) {
+func (c *Client) Do(req Request) (Response, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), c.Timeout)
 	defer cancel()
 
@@ -55,9 +125,37 @@ func (c Client) Do(req Request) (Response, error) {
 
 // DoWithContext will dial the host, connect to it, finally writing the request on the
 // connection.
-func (c Client) DoWithContext(ctx context.Context, req Request) (Response, error) {
-	c.Config.ServerName = req.u.Hostname()
-	d := tls.Dialer{Config: c.Config}
+func (c *Client) DoWithContext(_ctx context.Context, req Request) (Response, error) {
+	ctx, cancel := context.WithCancel(_ctx)
+	defer cancel()
+
+	c.refresh()
+
+	traceLogger, err := NewLoggerFromPath(ctx, c.Options.Trace)
+	if err != nil {
+		return Response{}, err
+	}
+
+	traceLogger.Info("Client.DoWithContext", "options", c.Options)
+
+	cfg := c.TLSConfig.Clone()
+	cfg.ServerName = req.u.Hostname()
+
+	traceLogger.Info(
+		"tls config",
+		"ServerName", cfg.ServerName,
+		"MinVersion", cfg.MinVersion,
+		"bypassing TOFU", c.Options.Insecure,
+	)
+
+	headersLogger, err := NewLoggerFromPath(ctx, c.Options.DumpHeaders)
+	if err != nil {
+		return Response{}, err
+	}
+
+	d := tls.Dialer{
+		Config: cfg,
+	}
 
 	conn, err := d.DialContext(ctx, "tcp", req.u.Host)
 	if err != nil {
@@ -73,6 +171,14 @@ func (c Client) DoWithContext(ctx context.Context, req Request) (Response, error
 	if err != nil {
 		return resp, err
 	}
+
+	headersLogger.Info(
+		"Headers",
+		"Host", cfg.ServerName,
+		"URL", req.String(),
+		"Meta", resp.Header.Meta,
+		"Status", resp.Header.Status,
+	)
 
 	return resp, nil
 }
