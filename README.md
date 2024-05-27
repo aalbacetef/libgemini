@@ -1,4 +1,4 @@
-![CI status](github.com/aalbacetef/libgemini/actions/workflows/ci.yml/badge.svg)
+![CI status](https://github.com/aalbacetef/libgemini/actions/workflows/ci.yml/badge.svg)
 
 # Libgemini
 
