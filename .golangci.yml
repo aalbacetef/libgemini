@@ -70,7 +70,7 @@ linters-settings:
     sections:
       - standard
       - default 
-      - prefix(githubb.com/aalbacetef)
+      - prefix(github.com/aalbacetef)
     skip-generated: false
     custom-order: true
 
