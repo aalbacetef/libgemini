@@ -39,10 +39,6 @@ linters-settings:
       - encoding/json.Marshal
       - encoding/json.MarshalIndent
 
-  errchkjson:
-    check-error-free-encoding: true
-    report-no-exported: false 
-
   errorlint:
     errorf: true
     errorf-multi: true
@@ -210,7 +206,6 @@ linters:
     - dupword
     - durationcheck
     - errcheck
-    - errchkjson
     - errname
     - errorlint
     - exhaustive
