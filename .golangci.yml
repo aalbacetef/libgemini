@@ -125,7 +125,8 @@ linters-settings:
       - error
       - stdlib
       - anon
-      - empty
+      - empty 
+      - tofu
 
   lll:
     line-length: 120

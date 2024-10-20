@@ -94,7 +94,7 @@ func parseHeader(respBytes []byte) (Header, int, error) {
 		return hdr, 0, fmt.Errorf("could not parse status code: %w", err)
 	}
 
-	hdr.Status = StatusCode(code)
+	hdr.Status = StatusCode(code) //nolint:gosec
 	hdr.Meta = string(p[spaceIndex+1:])
 
 	metaBytes := len(hdr.Meta)

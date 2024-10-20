@@ -37,7 +37,7 @@ func (NoopHandler) Handle(context.Context, slog.Record) error {
 	return nil
 }
 
-func (NoopHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
+func (NoopHandler) WithAttrs(_ []slog.Attr) slog.Handler {
 	return NoopHandler{}
 }
 
