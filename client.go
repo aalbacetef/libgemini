@@ -5,7 +5,7 @@ import (
 	"crypto/tls"
 	"fmt"
 
-	"github.com/aalbacetef/libgemini/tofu"
+	"github.com/aalbacetef/tofu"
 )
 
 func NewClient(userOpts ...OptsFn) (*Client, error) {

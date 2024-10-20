@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/aalbacetef/libgemini/tofu"
+	"github.com/aalbacetef/tofu"
 )
 
 type Options struct {
