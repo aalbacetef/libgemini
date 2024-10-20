@@ -1,6 +1,7 @@
 # output configuration options
 output:
-  format: colored-line-number
+  formats: 
+    - format: colored-line-number
   print-issued-lines: true
   print-linter-name: true
   uniq-by-line: true
@@ -32,13 +33,15 @@ linters-settings:
   
   errcheck:
     check-type-assertions: true
-
     check-blank: true
+    exclude-functions: 
+      - fmt.*
+      - encoding/json.Marshal
+      - encoding/json.MarshalIndent
 
-    # [deprecated] comma-separated list of pairs of the form pkg:regex
-    # the regex is used to ignore names within pkg. (default "fmt:.*").
-    # see https://github.com/kisielk/errcheck#the-deprecated-method for details
-    ignore: fmt:.*,io/ioutil:^Read.*
+  errchkjson:
+    check-error-free-encoding: true
+    report-no-exported: false 
 
   errorlint:
     errorf: true
@@ -59,7 +62,6 @@ linters-settings:
   exhaustruct:
     include: []
     exclude: []
-
 
   funlen:
     lines: 60
@@ -84,43 +86,28 @@ linters-settings:
     match-constant: true 
    
   godot:
-    scope: all
+    scope: toplevel
     exclude: []
     period: true
     capital: true
 
-  gomnd:
-    settings:
-      mnd:
-        checks: argument,case,condition,operation,return,assign
-        # ignored-numbers: 1000
-        # ignored-files: magic_.*.go
-        # ignored-functions: math.*    
-
-
   gosec:
     includes: []
-    excludes: 
-      # TLS InsecureSkipVerify set to true 
-      # we ignore this one because we're implementing TOFU 
-      # ourselves.
-      - 'G402' 
-      # Blocklisted import md5 and use of weak primitive 
-      # we ignore these because md5 is faster and aiming to 
-      # fully encrypt the user's known_hosts file is not the 
-      # aim of the package.
-      - 'G401' 
-      - 'G501' 
-    
+    excludes:
+      - G402
     exclude-generated: false 
     severity: low 
     confidence: low 
     concurrency: 2
 
+  gosimple:
+    checks: ["all"]
+
 
   govet:
-    check-shadowing: true
     enable-all: true
+    disable:
+      - fieldalignment # rarely necessary
     settings:
       # analyzer name, run `go tool vet help` to see all analyzers
       printf: 
@@ -131,11 +118,18 @@ linters-settings:
           - (github.com/golangci/golangci-lint/pkg/logutils.Log).Errorf
           - (github.com/golangci/golangci-lint/pkg/logutils.Log).Fatalf
 
+  inamedparam:
+    skip-single-param: true
+
   interfacebloat:
     max: 5
  
   ireturn:
-    allow: "error,stdlib,tofu.Store,slog.Handler"
+    allow: 
+      - error
+      - stdlib
+      - anon
+      - empty
 
   lll:
     line-length: 120
@@ -143,6 +137,18 @@ linters-settings:
 
   maintidx:
     under: 20
+
+  mnd:
+    checks: 
+      - argument
+      - case
+      - condition 
+      - operation
+      - return
+      - assign
+    # ignored-numbers: 1000
+    # ignored-files: magic_.*.go
+    # ignored-functions: math.*    
 
   misspell: 
     locale: US
@@ -168,6 +174,7 @@ linters-settings:
       - c
       - l
       - ch
+      - id
     ignore-decls:
       - c echo.Context
       - t *testing.T
@@ -179,7 +186,9 @@ linters-settings:
       - T any
       - m map[string]int
       - r io.Reader
+      - r *chi.Mux
       - w io.Writer
+      - w http.ResponseWriter
       - fd *os.File
       - p []byte
       - n int
@@ -196,12 +205,12 @@ linters:
     - containedctx
     - contextcheck
     - cyclop
-    # - decorder
     - dogsled
     - dupl
     - dupword
     - durationcheck
     - errcheck
+    - errchkjson
     - errname
     - errorlint
     - exhaustive
@@ -212,28 +221,29 @@ linters:
     - gochecknoinits
     - gocognit
     - goconst
+    - gocyclo
     - godot
-    - gomnd
     - gosimple
     - gosec
     - govet
     - grouper
+    - inamedparam
     - ineffassign
     - interfacebloat
     - ireturn
     - lll
     - maintidx 
     - misspell
+    - mnd
     - nakedret
     - nestif
     - nilnil
-    - nlreturn
     - nolintlint
     - nonamedreturns
     - prealloc
     - predeclared
     - reassign
-    # - revive
+    - revive
     - staticcheck
     - stylecheck
     - tagalign
